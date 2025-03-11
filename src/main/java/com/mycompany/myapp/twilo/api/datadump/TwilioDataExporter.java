@@ -19,14 +19,19 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public class TwilioDataExporter {
+    private static final TwilioConfig config = TwilioConfigLoader.loadConfig("application-localkevin.properties");
+    static {
+        Twilio.init(config.getApiKey(), config.getApiSecret(), config.getAccountSid());
+    }
 
     public static void exportConversationsToJson(List<String> conversationSids, String outputFilePath) throws IOException, IOException {
-        TwilioConfig config = TwilioConfigLoader.loadConfig("application-localkevin.properties");
-        Twilio.init(config.getApiKey(), config.getApiSecret(), config.getAccountSid());
-
         List<ExportedConversation> exportedConversations = new ArrayList<>(conversationSids.size());
 
         for (String conversationSid : conversationSids) {
+            if (conversationSid == null || conversationSid.trim().isBlank()) {
+                continue;
+            }
+
             Conversation conversation = Conversation.fetcher(config.getConversationServiceSid(), conversationSid).fetch();
 
             ResourceSet<Message> messages = Message.reader(config.getConversationServiceSid(), conversationSid).read();
@@ -35,6 +40,7 @@ public class TwilioDataExporter {
             ResourceSet<Participant> participants = Participant.reader(config.getConversationServiceSid(), conversationSid).read();
             List<Participant> allParticipants = getAllItemsInAutoPagingResourceSet(participants);
 
+            // TODO for each participants, find corresponding User data.
 
             ExportedConversation exportedConversation = ExportedConversation.builder()
                     .conversation(conversation)
