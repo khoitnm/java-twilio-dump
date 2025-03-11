@@ -1,6 +1,7 @@
 package com.mycompany.myapp.twilo.api.datadump;
 
 import com.twilio.rest.conversations.v1.service.Conversation;
+import com.twilio.rest.conversations.v1.service.User;
 import com.twilio.rest.conversations.v1.service.conversation.Message;
 import com.twilio.rest.conversations.v1.service.conversation.Participant;
 import lombok.Builder;
@@ -18,4 +19,6 @@ public class ExportedConversation {
     private final List<Message> messages;
     @NonNull
     private final List<Participant> participants;
+    @NonNull
+    private final List<User> users;
 }

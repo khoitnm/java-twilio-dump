@@ -7,25 +7,30 @@ import com.twilio.Twilio;
 import com.twilio.base.Resource;
 import com.twilio.base.ResourceSet;
 import com.twilio.rest.conversations.v1.service.Conversation;
+import com.twilio.rest.conversations.v1.service.User;
 import com.twilio.rest.conversations.v1.service.conversation.Message;
 import com.twilio.rest.conversations.v1.service.conversation.Participant;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public class TwilioDataExporter {
     private static final TwilioConfig config = TwilioConfigLoader.loadConfig("application-localkevin.properties");
+
     static {
         Twilio.init(config.getApiKey(), config.getApiSecret(), config.getAccountSid());
     }
 
-    public static void exportConversationsToJson(List<String> conversationSids, String outputFilePath) throws IOException, IOException {
+    public static void exportConversationsToJson(List<String> conversationSids, String outputFilePath) throws IOException {
         List<ExportedConversation> exportedConversations = new ArrayList<>(conversationSids.size());
+        Map<String, User> userCache = new HashMap<>();
 
         for (String conversationSid : conversationSids) {
             if (conversationSid == null || conversationSid.trim().isBlank()) {
@@ -40,12 +45,20 @@ public class TwilioDataExporter {
             ResourceSet<Participant> participants = Participant.reader(config.getConversationServiceSid(), conversationSid).read();
             List<Participant> allParticipants = getAllItemsInAutoPagingResourceSet(participants);
 
-            // TODO for each participants, find corresponding User data.
+            List<User> allUsers = new ArrayList<>();
+            for (Participant participant : allParticipants) {
+                String identity = participant.getIdentity();
+                User user = userCache.computeIfAbsent(identity,
+                        userIdentity -> User.fetcher(config.getConversationServiceSid(), userIdentity).fetch()
+                );
+                allUsers.add(user);
+            }
 
             ExportedConversation exportedConversation = ExportedConversation.builder()
                     .conversation(conversation)
                     .messages(allMessages)
                     .participants(allParticipants)
+                    .users(allUsers)
                     .build();
             exportedConversations.add(exportedConversation);
         }
