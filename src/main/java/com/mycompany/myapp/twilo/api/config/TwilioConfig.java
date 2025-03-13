@@ -9,8 +9,8 @@ import lombok.Setter;
 public class TwilioConfig {
     @NonNull
     private String accountSid;
-    @NonNull
-    private String conversationServiceSid;
+//    @NonNull
+//    private String conversationServiceSid;
     @NonNull
     private String apiKey;
     @NonNull

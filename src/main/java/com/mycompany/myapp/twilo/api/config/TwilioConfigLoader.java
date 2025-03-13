@@ -18,7 +18,7 @@ public class TwilioConfigLoader {
         }
         TwilioConfig config = new TwilioConfig();
         config.setAccountSid(properties.getProperty("twilio.account.sid"));
-        config.setConversationServiceSid(properties.getProperty("twilio.conversation-service-sid"));
+//        config.setConversationServiceSid(properties.getProperty("twilio.conversation-service-sid"));
         config.setApiKey(properties.getProperty("twilio.api.key"));
         config.setApiSecret(properties.getProperty("twilio.api.secret"));
         return config;

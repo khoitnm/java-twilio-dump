@@ -4,14 +4,12 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.mycompany.myapp.twilo.api.config.TwilioConfig;
-import com.mycompany.myapp.twilo.api.config.TwilioConfigLoader;
-import com.twilio.Twilio;
 import com.twilio.base.Resource;
 import com.twilio.base.ResourceSet;
-import com.twilio.rest.conversations.v1.service.Conversation;
-import com.twilio.rest.conversations.v1.service.User;
-import com.twilio.rest.conversations.v1.service.conversation.Message;
-import com.twilio.rest.conversations.v1.service.conversation.Participant;
+import com.twilio.rest.conversations.v1.Conversation;
+import com.twilio.rest.conversations.v1.User;
+import com.twilio.rest.conversations.v1.conversation.Message;
+import com.twilio.rest.conversations.v1.conversation.Participant;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
@@ -26,13 +24,9 @@ import java.util.stream.StreamSupport;
 
 @Slf4j
 public class TwilioDataExporter {
-    private static final TwilioConfig config = TwilioConfigLoader.loadConfig("application-localqa.properties");
 
-    static {
-        Twilio.init(config.getApiKey(), config.getApiSecret(), config.getAccountSid());
-    }
 
-    public static void exportConversationsToJson(List<String> conversationSids, String outputFilePath) throws IOException {
+    public static void exportConversationsToJson(TwilioConfig config, List<String> conversationSids, String outputFilePath) throws IOException {
         List<ExportedConversation> exportedConversations = new ArrayList<>(conversationSids.size());
         Map<String, User> userCache = new HashMap<>();
 
@@ -43,23 +37,23 @@ public class TwilioDataExporter {
 
             Conversation conversation;
             try {
-                conversation = Conversation.fetcher(config.getConversationServiceSid(), conversationSid).fetch();
+                conversation = Conversation.fetcher(conversationSid).fetch();
             } catch (Exception e) {
                 log.info("Error fetching conversation: " + conversationSid);
                 continue;
             }
 
-            ResourceSet<Message> messages = Message.reader(config.getConversationServiceSid(), conversationSid).read();
+            ResourceSet<Message> messages = Message.reader(conversationSid).read();
             List<Message> allMessages = getAllItemsInAutoPagingResourceSet(messages);
 
-            ResourceSet<Participant> participants = Participant.reader(config.getConversationServiceSid(), conversationSid).read();
+            ResourceSet<Participant> participants = Participant.reader(conversationSid).read();
             List<Participant> allParticipants = getAllItemsInAutoPagingResourceSet(participants);
 
             List<User> allUsers = new ArrayList<>();
             for (Participant participant : allParticipants) {
                 String identity = participant.getIdentity();
                 User user = userCache.computeIfAbsent(identity,
-                        userIdentity -> User.fetcher(config.getConversationServiceSid(), userIdentity).fetch()
+                        userIdentity -> User.fetcher(userIdentity).fetch()
                 );
                 allUsers.add(user);
             }

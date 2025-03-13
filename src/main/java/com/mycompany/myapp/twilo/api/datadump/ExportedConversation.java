@@ -1,9 +1,9 @@
 package com.mycompany.myapp.twilo.api.datadump;
 
-import com.twilio.rest.conversations.v1.service.Conversation;
-import com.twilio.rest.conversations.v1.service.User;
-import com.twilio.rest.conversations.v1.service.conversation.Message;
-import com.twilio.rest.conversations.v1.service.conversation.Participant;
+import com.twilio.rest.conversations.v1.Conversation;
+import com.twilio.rest.conversations.v1.User;
+import com.twilio.rest.conversations.v1.conversation.Message;
+import com.twilio.rest.conversations.v1.conversation.Participant;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
