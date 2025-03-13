@@ -17,31 +17,47 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 @Slf4j
 public class TwilioDataExporter {
+    public static final int BATCH_SIZE = 500;
+    public static final int USER_CACHE_SIZE = 10000;
+    public static final int PARRALELISM = 3;
+    public static final ObjectMapper objectMapper = newObjectMapper();
+
     public static void exportConversationsToJson(List<String> conversationSids, String outputFilePath) throws IOException {
-        List<ExportedConversation> exportedConversations = new ArrayList<>(conversationSids.size());
-        Map<String, User> userCache = new HashMap<>();
+        int totalBatches = (int) Math.ceil((double) conversationSids.size() / BATCH_SIZE);
 
-        for (String conversationSid : conversationSids) {
-            if (conversationSid == null || conversationSid.trim().isBlank()) {
-                return;
+        for (int batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+            int start = batchIndex * BATCH_SIZE;
+            int end = Math.min(start + BATCH_SIZE, conversationSids.size());
+            int logBatchIndex = batchIndex + 1;
+            log.info("Batch {} of {} [{} - {}] Exporting conversations ...", logBatchIndex, totalBatches, start, end);
+            List<String> batchConversationSids = conversationSids.subList(start, end);
+            Map<String, User> userCache = new HashMap<>(USER_CACHE_SIZE);
+
+            List<ExportedConversation> exportedConversations = new ArrayList<>(batchConversationSids.size());
+
+            for (String conversationSid : batchConversationSids) {
+                if (conversationSid == null || conversationSid.trim().isBlank()) {
+                    continue;
+                }
+                try {
+                    ExportedConversation exportedConversation = exportConversation(conversationSid, userCache);
+                    exportedConversations.add(exportedConversation);
+                } catch (Exception e) {
+                    log.error("Batch {} of {}: Error fetching conversation {}",logBatchIndex, totalBatches,  conversationSid, e);
+                    continue;
+                }
             }
-            try {
-                ExportedConversation exportedConversation = exportConversation(conversationSid, userCache);
-                exportedConversations.add(exportedConversation);
-            } catch (Exception e) {
-                log.error("Error fetching conversation: " + conversationSid, e);
-                return;
-            }
+
+            String batchOutputFilePath = outputFilePath.replace(".json", "_" + batchIndex + ".json");
+            File batchFile = new File(batchOutputFilePath);
+            objectMapper.writeValue(batchFile, exportedConversations);
+            log.info("Batch {} of {}: Generated JSON file: {}", logBatchIndex, totalBatches, batchOutputFilePath);
         }
-
-        ObjectMapper objectMapper = newObjectMapper();
-        objectMapper.writeValue(new File(outputFilePath), exportedConversations);
     }
 
     private static ExportedConversation exportConversation(String conversationSid, Map<String, User> userCache) {
@@ -52,39 +68,22 @@ public class TwilioDataExporter {
         ResourceSet<Participant> participants = Participant.reader(conversationSid).read();
         List<Participant> allParticipants = getAllItemsInAutoPagingResourceSet(participants);
 
-        List<User> allUsers = new ArrayList<>();
+        List<ParticipantAndUser> participantAndUsers = new ArrayList<>();
         for (Participant participant : allParticipants) {
             String identity = participant.getIdentity();
-            User user = userCache.computeIfAbsent(identity,
-                    userIdentity -> User.fetcher(userIdentity).fetch()
-            );
-            allUsers.add(user);
+            User user = userCache.computeIfAbsent(identity, userIdentity -> User.fetcher(userIdentity).fetch());
+            ParticipantAndUser participantAndUser = ParticipantAndUser.builder().participant(participant).user(user).build();
+            participantAndUsers.add(participantAndUser);
         }
 
-        ExportedConversation exportedConversation = ExportedConversation.builder()
-                .conversation(conversation)
-                .messages(allMessages)
-                .participants(allParticipants)
-                .users(allUsers)
-                .build();
+        ExportedConversation exportedConversation = ExportedConversation.builder().conversation(conversation).messages(allMessages).participantAndUsers(participantAndUsers).build();
         return exportedConversation;
     }
 
     private static <E extends Resource> List<E> getAllItemsInAutoPagingResourceSet(ResourceSet<E> resourceSet) {
-        // We don't want too many parallelism to avoid exceeding Twilio rate limits.
-        ForkJoinPool customThreadPool = new ForkJoinPool(3);
-        try {
-            // Note that Twilio has autoPaging resourceSet, so after it iterate through all items in the current page,
-            // it will automatically fetch the next page and continue iterating.
-            return customThreadPool.submit(() ->
-                    StreamSupport.stream(resourceSet.spliterator(), true)
-                            .collect(Collectors.toList())
-            ).get();
-        } catch (Exception e) {
-            throw new RuntimeException("Error processing resource set in parallel", e);
-        } finally {
-            customThreadPool.shutdown();
-        }
+        // Note that Twilio has autoPaging resourceSet, so after it iterate through all items in the current page,
+        // it will automatically fetch the next page and continue iterating.
+        return StreamSupport.stream(resourceSet.spliterator(), false).collect(Collectors.toList());
     }
 
     public static ObjectMapper newObjectMapper() {

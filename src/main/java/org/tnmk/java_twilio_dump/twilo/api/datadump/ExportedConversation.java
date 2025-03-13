@@ -18,7 +18,9 @@ public class ExportedConversation {
     @NonNull
     private final List<Message> messages;
     @NonNull
-    private final List<Participant> participants;
-    @NonNull
-    private final List<User> users;
+    private final List<ParticipantAndUser> participantAndUsers;
+//    @NonNull
+//    private final List<Participant> participants;
+//    @NonNull
+//    private final List<User> users;
 }
