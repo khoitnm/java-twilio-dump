@@ -1,7 +1,6 @@
 package com.mycompany.myapp.twilo.api.config;
 
-import com.mycompany.myapp.ConversationCreatorApp;
-
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
@@ -10,7 +9,8 @@ public class TwilioConfigLoader {
 
     public static TwilioConfig loadConfig(String filePath) {
         Properties properties = new Properties();
-        try (InputStream inputStream = ConversationCreatorApp.class.getClassLoader().getResourceAsStream(filePath)) {
+        try (InputStream inputStream = new FileInputStream(filePath)) {
+//        try (InputStream inputStream = JavaTwilioDumpApp.class.getClassLoader().getResourceAsStream(filePath)) {
             properties.load(inputStream);
         } catch (IOException e) {
             e.printStackTrace();

@@ -9,7 +9,7 @@ import java.nio.file.Paths;
 import java.util.List;
 
 @Slf4j
-public class ConversationCreatorApp {
+public class JavaTwilioDumpApp {
     /**
      * And example command line:
      * java -cp target/myapp-1.0-SNAPSHOT.jar com.mycompany.myapp.ConversationCreatorApp inputFilePath.txt outputFilePath.json

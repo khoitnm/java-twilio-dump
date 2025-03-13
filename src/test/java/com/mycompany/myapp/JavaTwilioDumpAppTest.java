@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
-class ConversationCreatorAppTest {
+class JavaTwilioDumpAppTest {
     @Test
     public void testMain() throws IOException {
         // Arrange
@@ -12,7 +12,7 @@ class ConversationCreatorAppTest {
         args[0] = "C:\\dev\\workspace\\personal\\java-twilio-dump\\src\\main\\resources\\input-conversations.txt";
         args[1] = "C:\\dev\\workspace\\personal\\java-twilio-dump\\target\\output.json";
         // Act
-        ConversationCreatorApp.main(args);
+        JavaTwilioDumpApp.main(args);
         // Assert
     }
 }

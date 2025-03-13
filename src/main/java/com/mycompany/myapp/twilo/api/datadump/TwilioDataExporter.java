@@ -1,6 +1,8 @@
 package com.mycompany.myapp.twilo.api.datadump;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.mycompany.myapp.twilo.api.config.TwilioConfig;
 import com.mycompany.myapp.twilo.api.config.TwilioConfigLoader;
 import com.twilio.Twilio;
@@ -10,6 +12,7 @@ import com.twilio.rest.conversations.v1.service.Conversation;
 import com.twilio.rest.conversations.v1.service.User;
 import com.twilio.rest.conversations.v1.service.conversation.Message;
 import com.twilio.rest.conversations.v1.service.conversation.Participant;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,8 +24,9 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+@Slf4j
 public class TwilioDataExporter {
-    private static final TwilioConfig config = TwilioConfigLoader.loadConfig("application-localkevin.properties");
+    private static final TwilioConfig config = TwilioConfigLoader.loadConfig("application-localqa.properties");
 
     static {
         Twilio.init(config.getApiKey(), config.getApiSecret(), config.getAccountSid());
@@ -37,7 +41,13 @@ public class TwilioDataExporter {
                 continue;
             }
 
-            Conversation conversation = Conversation.fetcher(config.getConversationServiceSid(), conversationSid).fetch();
+            Conversation conversation;
+            try {
+                conversation = Conversation.fetcher(config.getConversationServiceSid(), conversationSid).fetch();
+            } catch (Exception e) {
+                log.info("Error fetching conversation: " + conversationSid);
+                continue;
+            }
 
             ResourceSet<Message> messages = Message.reader(config.getConversationServiceSid(), conversationSid).read();
             List<Message> allMessages = getAllItemsInAutoPagingResourceSet(messages);
@@ -63,7 +73,7 @@ public class TwilioDataExporter {
             exportedConversations.add(exportedConversation);
         }
 
-        ObjectMapper objectMapper = new ObjectMapper();
+        ObjectMapper objectMapper = newObjectMapper();
         objectMapper.writeValue(new File(outputFilePath), exportedConversations);
     }
 
@@ -84,5 +94,11 @@ public class TwilioDataExporter {
         }
     }
 
-
+    public static ObjectMapper newObjectMapper() {
+        ObjectMapper objectMapper = new ObjectMapper();
+        // This will help convert modern date types in Java 8 (ZonedDateTime, Instant, etc.)
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        return objectMapper;
+    }
 }
