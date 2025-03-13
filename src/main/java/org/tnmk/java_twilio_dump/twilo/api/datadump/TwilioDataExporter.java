@@ -13,7 +13,9 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -45,7 +47,7 @@ public class TwilioDataExporter {
 
             List<Future<ExportedConversation>> futures = new ArrayList<>();
             for (String conversationSid : batchConversationSids) {
-                if (conversationSid == null || conversationSid.trim().isBlank()) {
+                if (conversationSid == null || !conversationSid.trim().startsWith("CH")) {
                     continue;
                 }
                 futures.add(executorService.submit(() -> exportConversation(conversationSid, usersCache)));
@@ -56,11 +58,11 @@ public class TwilioDataExporter {
                 try {
                     exportedConversations.add(future.get());
                 } catch (InterruptedException | ExecutionException e) {
-                    log.error("Batch {} of {}: Error fetching conversation", logBatchIndex, totalBatches, e);
+                    log.warn("Batch {} of {}: Error when fetching conversation (it will be ignore and continue with other conversations)", logBatchIndex, totalBatches, e);
                 }
             }
 
-            String batchOutputFilePath = outputFilePath.replace(".json", "_" + batchIndex + ".json");
+            String batchOutputFilePath = outputFilePath.replace(".json", "_" + logBatchIndex + ".json");
             File batchFile = new File(batchOutputFilePath);
             objectMapper.writeValue(batchFile, exportedConversations);
             log.info("Batch {} of {}: Generated JSON file: {}", logBatchIndex, totalBatches, batchOutputFilePath);

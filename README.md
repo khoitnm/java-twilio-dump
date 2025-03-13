@@ -15,8 +15,8 @@ You can use your IDE to run it, or use command line:
 org.tnmk.java_twilio_dump.JavaTwilioDumpApp
 ```
 java -jar ./target/java-twilio-dump-1.0-SNAPSHOT-jar-with-dependencies.jar  ^
-    "C:\\dev\\workspace\\personal\\java-twilio-dump\\src\\main\\resources\\application-localqa.properties" ^
-    "C:\\dev\\workspace\\personal\\java-twilio-dump\\src\\main\\resources\\input-conversations.txt" ^
+    "C:\\dev\\workspace\\personal\\java-twilio-dump\\application-localqa.properties" ^
+    "C:\\dev\\workspace\\personal\\java-twilio-dump\\input-conversations.csv" ^
     "C:\\dev\\workspace\\personal\\java-twilio-dump\\target\\output.json"
 ```
 
