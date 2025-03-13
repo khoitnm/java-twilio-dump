@@ -1,9 +1,8 @@
-package com.mycompany.myapp.twilo.api.datadump;
+package org.tnmk.java_twilio_dump.twilo.api.datadump;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.mycompany.myapp.twilo.api.config.TwilioConfig;
 import com.twilio.base.Resource;
 import com.twilio.base.ResourceSet;
 import com.twilio.rest.conversations.v1.Conversation;
@@ -24,51 +23,51 @@ import java.util.stream.StreamSupport;
 
 @Slf4j
 public class TwilioDataExporter {
-
-
-    public static void exportConversationsToJson(TwilioConfig config, List<String> conversationSids, String outputFilePath) throws IOException {
+    public static void exportConversationsToJson(List<String> conversationSids, String outputFilePath) throws IOException {
         List<ExportedConversation> exportedConversations = new ArrayList<>(conversationSids.size());
         Map<String, User> userCache = new HashMap<>();
 
         for (String conversationSid : conversationSids) {
             if (conversationSid == null || conversationSid.trim().isBlank()) {
-                continue;
+                return;
             }
-
-            Conversation conversation;
             try {
-                conversation = Conversation.fetcher(conversationSid).fetch();
+                ExportedConversation exportedConversation = exportConversation(conversationSid, userCache);
+                exportedConversations.add(exportedConversation);
             } catch (Exception e) {
-                log.info("Error fetching conversation: " + conversationSid);
-                continue;
+                log.error("Error fetching conversation: " + conversationSid, e);
+                return;
             }
-
-            ResourceSet<Message> messages = Message.reader(conversationSid).read();
-            List<Message> allMessages = getAllItemsInAutoPagingResourceSet(messages);
-
-            ResourceSet<Participant> participants = Participant.reader(conversationSid).read();
-            List<Participant> allParticipants = getAllItemsInAutoPagingResourceSet(participants);
-
-            List<User> allUsers = new ArrayList<>();
-            for (Participant participant : allParticipants) {
-                String identity = participant.getIdentity();
-                User user = userCache.computeIfAbsent(identity,
-                        userIdentity -> User.fetcher(userIdentity).fetch()
-                );
-                allUsers.add(user);
-            }
-
-            ExportedConversation exportedConversation = ExportedConversation.builder()
-                    .conversation(conversation)
-                    .messages(allMessages)
-                    .participants(allParticipants)
-                    .users(allUsers)
-                    .build();
-            exportedConversations.add(exportedConversation);
         }
 
         ObjectMapper objectMapper = newObjectMapper();
         objectMapper.writeValue(new File(outputFilePath), exportedConversations);
+    }
+
+    private static ExportedConversation exportConversation(String conversationSid, Map<String, User> userCache) {
+        Conversation conversation = Conversation.fetcher(conversationSid).fetch();
+        ResourceSet<Message> messages = Message.reader(conversationSid).read();
+        List<Message> allMessages = getAllItemsInAutoPagingResourceSet(messages);
+
+        ResourceSet<Participant> participants = Participant.reader(conversationSid).read();
+        List<Participant> allParticipants = getAllItemsInAutoPagingResourceSet(participants);
+
+        List<User> allUsers = new ArrayList<>();
+        for (Participant participant : allParticipants) {
+            String identity = participant.getIdentity();
+            User user = userCache.computeIfAbsent(identity,
+                    userIdentity -> User.fetcher(userIdentity).fetch()
+            );
+            allUsers.add(user);
+        }
+
+        ExportedConversation exportedConversation = ExportedConversation.builder()
+                .conversation(conversation)
+                .messages(allMessages)
+                .participants(allParticipants)
+                .users(allUsers)
+                .build();
+        return exportedConversation;
     }
 
     private static <E extends Resource> List<E> getAllItemsInAutoPagingResourceSet(ResourceSet<E> resourceSet) {

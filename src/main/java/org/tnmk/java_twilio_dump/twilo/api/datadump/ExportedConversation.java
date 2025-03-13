@@ -1,4 +1,4 @@
-package com.mycompany.myapp.twilo.api.datadump;
+package org.tnmk.java_twilio_dump.twilo.api.datadump;
 
 import com.twilio.rest.conversations.v1.Conversation;
 import com.twilio.rest.conversations.v1.User;

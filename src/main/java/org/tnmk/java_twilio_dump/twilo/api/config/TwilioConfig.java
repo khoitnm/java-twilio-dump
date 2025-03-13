@@ -1,4 +1,4 @@
-package com.mycompany.myapp.twilo.api.config;
+package org.tnmk.java_twilio_dump.twilo.api.config;
 
 import lombok.Getter;
 import lombok.NonNull;

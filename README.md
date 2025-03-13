@@ -11,7 +11,14 @@ mvn clean install
 ```
 
 ### Step 4: Run application
-You can use your IDE to run it.
+You can use your IDE to run it, or use command line:
+org.tnmk.java_twilio_dump.JavaTwilioDumpApp
+```
+java -jar ./target/java-twilio-dump-1.0-SNAPSHOT-jar-with-dependencies.jar  ^
+    "C:\\dev\\workspace\\personal\\java-twilio-dump\\src\\main\\resources\\application-localqa.properties" ^
+    "C:\\dev\\workspace\\personal\\java-twilio-dump\\src\\main\\resources\\input-conversations.txt" ^
+    "C:\\dev\\workspace\\personal\\java-twilio-dump\\target\\output.json"
+```
 
 # Note when setting up your Twilio account
 After configure Twilio accountSid (or subaccountSid), API Key and API Secret, you also need to configure the Conversations' default service:

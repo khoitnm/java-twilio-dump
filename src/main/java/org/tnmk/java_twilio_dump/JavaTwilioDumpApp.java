@@ -1,8 +1,8 @@
-package com.mycompany.myapp;
+package org.tnmk.java_twilio_dump;
 
-import com.mycompany.myapp.twilo.api.config.TwilioConfig;
-import com.mycompany.myapp.twilo.api.config.TwilioConfigLoader;
-import com.mycompany.myapp.twilo.api.datadump.TwilioDataExporter;
+import org.tnmk.java_twilio_dump.twilo.api.config.TwilioConfig;
+import org.tnmk.java_twilio_dump.twilo.api.config.TwilioConfigLoader;
+import org.tnmk.java_twilio_dump.twilo.api.datadump.TwilioDataExporter;
 import com.twilio.Twilio;
 import lombok.extern.slf4j.Slf4j;
 
@@ -29,6 +29,6 @@ public class JavaTwilioDumpApp {
 
         String outputFilePath = args[2];
         log.info("Exporting conversations to JSON file: {} ...", outputFilePath);
-        TwilioDataExporter.exportConversationsToJson(config, conversationSids, outputFilePath);
+        TwilioDataExporter.exportConversationsToJson(conversationSids, outputFilePath);
     }
 }  
