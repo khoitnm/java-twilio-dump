@@ -13,10 +13,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -24,11 +22,12 @@ import java.util.stream.StreamSupport;
 public class TwilioDataExporter {
     public static final int BATCH_SIZE = 500;
     public static final int USER_CACHE_SIZE = 10000;
-    public static final int PARRALELISM = 3;
+    public static final int PARALLEL_CONVERSATIONS = 5;
     public static final ObjectMapper objectMapper = newObjectMapper();
 
     public static void exportConversationsToJson(List<String> conversationSids, String outputFilePath) throws IOException {
         int totalBatches = (int) Math.ceil((double) conversationSids.size() / BATCH_SIZE);
+        ExecutorService executorService = Executors.newFixedThreadPool(PARALLEL_CONVERSATIONS);
 
         for (int batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
             int start = batchIndex * BATCH_SIZE;
@@ -36,20 +35,28 @@ public class TwilioDataExporter {
             int logBatchIndex = batchIndex + 1;
             log.info("Batch {} of {} [{} - {}] Exporting conversations ...", logBatchIndex, totalBatches, start, end);
             List<String> batchConversationSids = conversationSids.subList(start, end);
-            Map<String, User> userCache = new HashMap<>(USER_CACHE_SIZE);
 
-            List<ExportedConversation> exportedConversations = new ArrayList<>(batchConversationSids.size());
+            // We have to use concurrentHashMap because we are working on multiple threads.
+            /**
+             * key: user identity == participant identity
+             * value: user
+             */
+            final Map<String, User> usersCache = new ConcurrentHashMap<>(USER_CACHE_SIZE);
 
+            List<Future<ExportedConversation>> futures = new ArrayList<>();
             for (String conversationSid : batchConversationSids) {
                 if (conversationSid == null || conversationSid.trim().isBlank()) {
                     continue;
                 }
+                futures.add(executorService.submit(() -> exportConversation(conversationSid, usersCache)));
+            }
+
+            List<ExportedConversation> exportedConversations = new ArrayList<>(batchConversationSids.size());
+            for (Future<ExportedConversation> future : futures) {
                 try {
-                    ExportedConversation exportedConversation = exportConversation(conversationSid, userCache);
-                    exportedConversations.add(exportedConversation);
-                } catch (Exception e) {
-                    log.error("Batch {} of {}: Error fetching conversation {}",logBatchIndex, totalBatches,  conversationSid, e);
-                    continue;
+                    exportedConversations.add(future.get());
+                } catch (InterruptedException | ExecutionException e) {
+                    log.error("Batch {} of {}: Error fetching conversation", logBatchIndex, totalBatches, e);
                 }
             }
 
@@ -58,6 +65,8 @@ public class TwilioDataExporter {
             objectMapper.writeValue(batchFile, exportedConversations);
             log.info("Batch {} of {}: Generated JSON file: {}", logBatchIndex, totalBatches, batchOutputFilePath);
         }
+
+        executorService.shutdown();
     }
 
     private static ExportedConversation exportConversation(String conversationSid, Map<String, User> userCache) {
