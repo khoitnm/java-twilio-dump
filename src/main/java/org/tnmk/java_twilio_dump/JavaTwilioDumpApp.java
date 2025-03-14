@@ -13,10 +13,7 @@ import java.util.List;
 
 @Slf4j
 public class JavaTwilioDumpApp {
-    /**
-     * And example command line:
-     * java -cp target/myapp-1.0-SNAPSHOT.jar com.mycompany.myapp.ConversationCreatorApp inputFilePath.txt outputFilePath.json
-     */
+    
     public static void main(String[] args) throws IOException {
         String configurationFilePath = args[0];
         TwilioConfig config = TwilioConfigLoader.loadConfig(configurationFilePath);
