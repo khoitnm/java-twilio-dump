@@ -26,5 +26,5 @@
 hs_err_pid*
 replay_pid*
 
-application-local*.*
+application-*.*
 input-conversations.csv

@@ -1,9 +1,11 @@
 package org.tnmk.java_twilio_dump;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
+@Disabled("This test is for manual testing only.")
 class JavaTwilioDumpAppTest {
     @Test
     public void testMain() throws IOException {
