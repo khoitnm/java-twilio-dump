@@ -11,8 +11,15 @@ import com.twilio.rest.conversations.v1.conversation.Message;
 import com.twilio.rest.conversations.v1.conversation.Participant;
 import lombok.extern.slf4j.Slf4j;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +34,9 @@ public class TwilioDataExporter {
     public static final int PARALLEL_CONVERSATIONS = 5;
     public static final ObjectMapper objectMapper = newObjectMapper();
 
-    public static void exportConversationsToJson(List<String> conversationSids, String outputFilePath) throws IOException {
+    public static void exportConversationsToJson(
+            List<String> conversationSids, String outputFilePath, SecretKey secretKey
+    ) throws IOException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
         int totalBatches = (int) Math.ceil((double) conversationSids.size() / BATCH_SIZE);
         ExecutorService executorService = Executors.newFixedThreadPool(PARALLEL_CONVERSATIONS);
 
@@ -62,10 +71,15 @@ public class TwilioDataExporter {
                 }
             }
 
+
+            String json = objectMapper.writeValueAsString(exportedConversations);
+            String encryptedJson = EncryptionUtil.encrypt(json, secretKey);
             String batchOutputFilePath = outputFilePath.replace(".json", "_" + logBatchIndex + ".json");
             File batchFile = new File(batchOutputFilePath);
-            objectMapper.writeValue(batchFile, exportedConversations);
-            log.info("Batch {} of {}: Generated JSON file: {}", logBatchIndex, totalBatches, batchOutputFilePath);
+            try (FileWriter fileWriter = new FileWriter(batchFile)) {
+                fileWriter.write(encryptedJson);
+            }
+            log.info("Batch {} of {}: Generated encrypted JSON file: {}", logBatchIndex, totalBatches, batchOutputFilePath);
         }
 
         executorService.shutdown();
